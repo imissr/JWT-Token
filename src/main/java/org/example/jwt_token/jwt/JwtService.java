@@ -3,7 +3,9 @@ package org.example.jwt_token.jwt;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import org.springframework.beans.factory.annotation.Value;
+import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import org.example.jwt_token.config.JwtProperties;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -11,52 +13,40 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.sql.Date;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-
-
 @Service
+@RequiredArgsConstructor
 public class JwtService {
 
-    private final SecretKey signingKey;
+    private final JwtProperties jwtProperties;
 
-    private final long accessTokenExpirationsMs;
-
-    private final String issuer;
-
-    public JwtService(@Value("${jwt.signing.key}") SecretKey signingKey, @Value("${jwt.access.token.expiration}") long accessTokenExpirationsMs, @Value("${jwt.issuer}") String issuer) {
-        this.signingKey = signingKey;
-        this.accessTokenExpirationsMs = accessTokenExpirationsMs;
-        this.issuer = issuer;
+    private SecretKey getSigningKey() {
+        byte[] keyBytes = Base64.getEncoder().encode(jwtProperties.getSecret().getBytes());
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public long getAccessTokenExpirationMs() {
-        return accessTokenExpirationsMs;
+        return jwtProperties.getExpiration();
     }
-
-    /** generate access token for the user
-     *
-     * @param userDetails
-     * @return String Token
-     */
 
     public String generateAccessToken(UserDetails userDetails) {
         Instant now = Instant.now();
-        Instant expiration = now.plusMillis(accessTokenExpirationsMs);
+        Instant expiration = now.plusMillis(jwtProperties.getExpiration());
         List<String> roles = extractRoles(userDetails.getAuthorities());
 
         return Jwts.builder()
                 .subject(userDetails.getUsername())
-                .issuer(issuer)
+                .issuer(jwtProperties.getIssuer())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiration))
-                .signWith(signingKey)
+                .signWith(getSigningKey())
                 .id(UUID.randomUUID().toString())
                 .claim("roles", roles)
                 .compact();
-
     }
 
     private List<String> extractRoles(Collection<? extends GrantedAuthority> authorities) {
@@ -65,15 +55,9 @@ public class JwtService {
                 .toList();
     }
 
-    /**
-     * reads the JWT and returns its claims (data stored inside the token)
-     * @param token
-     * @return Claims
-     *
-     */
-    public Claims parseClaims(String token){
+    public Claims parseClaims(String token) {
         return Jwts.parser()
-                .verifyWith(signingKey)
+                .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -83,16 +67,18 @@ public class JwtService {
         return parseClaims(token).getSubject();
     }
 
-    public boolean isTokenValid(String token, UserDetails userDetails){
-        try{
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        try {
             Claims claims = parseClaims(token);
             String username = claims.getSubject();
             String tokenIssuer = claims.getIssuer();
             java.util.Date expiration = claims.getExpiration();
 
-            return username.equals(userDetails.getUsername()) && tokenIssuer.equals(issuer) && expiration.after(new java.util.Date());
+            return username.equals(userDetails.getUsername())
+                    && tokenIssuer.equals(jwtProperties.getIssuer())
+                    && expiration.after(new java.util.Date());
 
-        }catch(JwtException | IllegalArgumentException e){
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
