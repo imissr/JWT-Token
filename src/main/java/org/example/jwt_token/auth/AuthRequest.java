@@ -1,14 +1,14 @@
 package org.example.jwt_token.auth;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 
 @Getter
 @Setter
 public class AuthRequest {
-    @NonNull
+    @NotBlank(message = "Username is required")
     private String username;
-    @NonNull
+    @NotBlank(message = "Password is required")
     private String password;
 }

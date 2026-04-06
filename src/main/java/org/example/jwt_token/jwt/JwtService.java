@@ -6,7 +6,6 @@ import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -16,7 +15,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-import static io.jsonwebtoken.Jwts.parser;
+
 
 @Service
 public class JwtService {
@@ -26,28 +25,30 @@ public class JwtService {
     private final long accessTokenExpirationsMs;
 
     private final String issuer;
-    private final UserDetailsService userDetailsService;
 
-    public JwtService(@Value("${jwt.signing.key}") SecretKey signingKey, @Value("${jwt.access.token.expiration}") long accessTokenExpirationsMs, @Value("${jwt.issuer}") String issuer, UserDetailsService userDetailsService) {
+    public JwtService(@Value("${jwt.signing.key}") SecretKey signingKey, @Value("${jwt.access.token.expiration}") long accessTokenExpirationsMs, @Value("${jwt.issuer}") String issuer) {
         this.signingKey = signingKey;
         this.accessTokenExpirationsMs = accessTokenExpirationsMs;
         this.issuer = issuer;
-        this.userDetailsService = userDetailsService;
+    }
+
+    public long getAccessTokenExpirationMs() {
+        return accessTokenExpirationsMs;
     }
 
     /** generate access token for the user
      *
-     * @param user
+     * @param userDetails
      * @return String Token
      */
 
-    public String generateAccessToken(UserDetails user){
+    public String generateAccessToken(UserDetails userDetails) {
         Instant now = Instant.now();
         Instant expiration = now.plusMillis(accessTokenExpirationsMs);
-        List<String> roles = extractRoles(user.getAuthorities());
+        List<String> roles = extractRoles(userDetails.getAuthorities());
 
         return Jwts.builder()
-                .subject(user.getUsername())
+                .subject(userDetails.getUsername())
                 .issuer(issuer)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiration))

@@ -1,17 +1,14 @@
-package com.example.app.auth;
+package org.example.jwt_token.auth;
 
-
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
-import org.springframework.validation.annotation.Validated;
 
 @Getter
 @Setter
 public class RegisterRequest {
-
-    @NonNull
+    @NotBlank(message = "Username is required")
     private String username;
-    @NonNull
+    @NotBlank(message = "Password is required")
     private String password;
 }
