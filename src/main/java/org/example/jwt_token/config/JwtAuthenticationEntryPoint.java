@@ -15,12 +15,24 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Handles unauthorized access attempts by returning a structured JSON 401 response.
+ * Triggered when an unauthenticated request hits a protected route.
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     private final ObjectMapper objectMapper;
 
+    /**
+     * Called when authentication fails or is missing on a protected endpoint.
+     * Writes a JSON error body with status 401 instead of Spring's default HTML error page.
+     *
+     * @param request       the request that caused the exception
+     * @param response      the response to write the 401 error to
+     * @param authException the exception that triggered this entry point
+     */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

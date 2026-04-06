@@ -13,6 +13,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service handling user registration and login logic.
+ * Produces JWT tokens upon successful authentication.
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -23,7 +27,14 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
 
-
+    /**
+     * Registers a new user, saves them to the database with a BCrypt-hashed password,
+     * and returns a JWT token.
+     *
+     * @param registerRequest the registration payload containing username and password
+     * @return {@link AuthResponse} with JWT token and user info
+     * @throws IllegalArgumentException if the username is blank or already taken
+     */
     public AuthResponse register(RegisterRequest registerRequest){
         String normalizedUsername = registerRequest.getUsername().trim().toLowerCase();
 
@@ -55,6 +66,15 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Authenticates an existing user by verifying credentials against the database.
+     * Delegates to {@link org.springframework.security.authentication.dao.DaoAuthenticationProvider},
+     * which uses {@link org.example.jwt_token.user.CustomUserDetailsService} and BCrypt password matching.
+     *
+     * @param authRequest the login payload containing username and password
+     * @return {@link AuthResponse} with JWT token and user info
+     * @throws org.springframework.security.authentication.BadCredentialsException if credentials are invalid
+     */
     public AuthResponse login(AuthRequest authRequest) {
         // Delegates to DaoAuthenticationProvider → CustomUserDetailsService + PasswordEncoder
         // Throws BadCredentialsException automatically if credentials are wrong
